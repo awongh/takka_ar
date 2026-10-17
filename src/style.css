@@ -13,6 +13,7 @@ body,
   overflow: hidden;
   background: #0e1116;
   font-family:
+    Outfit,
     "Segoe UI",
     system-ui,
     -apple-system,
@@ -57,6 +58,151 @@ body,
 
 .status--warning p {
   color: #7a5320;
+}
+
+.landing {
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  width: 100%;
+  height: 100%;
+  padding: max(1.5rem, env(safe-area-inset-top))
+    max(1.25rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom))
+    max(1.25rem, env(safe-area-inset-left));
+  text-align: center;
+  color: #f7f1e6;
+  background-color: #1a2418;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.landing-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 50% 42%,
+      rgba(20, 28, 18, 0.18) 0%,
+      rgba(10, 14, 10, 0.55) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 12, 8, 0.35) 0%,
+      rgba(8, 12, 8, 0.15) 40%,
+      rgba(8, 12, 8, 0.55) 100%
+    );
+  pointer-events: none;
+}
+
+.landing-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  width: min(28rem, 100%);
+  padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid rgba(247, 241, 230, 0.22);
+  border-radius: 1.35rem;
+  background: rgba(18, 24, 16, 0.48);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: landing-panel-in 0.7s ease-out both;
+}
+
+.landing-panel h1 {
+  margin: 0;
+  max-width: 16ch;
+  font-family: Fraunces, Georgia, "Times New Roman", serif;
+  font-size: clamp(1.85rem, 6.5vw, 2.55rem);
+  font-weight: 700;
+  font-optical-sizing: auto;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: #fff8ee;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+}
+
+.landing-panel p {
+  margin: 0;
+  max-width: 24rem;
+  line-height: 1.5;
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(247, 241, 230, 0.86);
+}
+
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+  width: 100%;
+}
+
+.button--start {
+  min-width: min(14rem, 80vw);
+  padding: 1rem 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f0c56a 0%, #d49a3a 100%);
+  color: #2a1c08;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+
+.button--start:hover {
+  background: linear-gradient(180deg, #f6d287 0%, #e0a94a 100%);
+  filter: brightness(1.03);
+}
+
+.button--start:active {
+  transform: scale(0.98);
+}
+
+.button--link {
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: rgba(247, 241, 230, 0.88);
+  font-size: 0.92rem;
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: rgba(240, 197, 106, 0.7);
+  box-shadow: none;
+}
+
+.button--link:hover {
+  background: transparent;
+  color: #fff8ee;
+  text-decoration-color: #f0c56a;
+}
+
+@keyframes landing-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.85rem) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .game-canvas,
@@ -173,6 +319,12 @@ body,
   color: inherit;
   font: inherit;
   font-size: 0.875rem;
+}
+
+.control-sound {
+  width: 100%;
+  margin-bottom: 0.85rem;
+  justify-content: center;
 }
 
 @media (max-width: 640px) {

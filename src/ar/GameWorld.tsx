@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Vector3 } from "three";
 import type { AnimalId } from "../animals";
+import { playDestroySound, playFireSound } from "../audio";
 import { AnimalTarget } from "./AnimalTarget";
 import { Explosion } from "./Explosion";
 import { FloorMarker } from "./FloorMarker";
@@ -99,7 +100,9 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
     }, []);
 
     useFrame((_, delta) => {
-      const step = Math.min(delta, 0.05);
+      const step = Number.isFinite(delta)
+        ? Math.min(0.05, Math.max(0, delta))
+        : 0;
 
       if (!floorLocked.current) {
         aimCamera(camera).getWorldPosition(cameraPos.current);
@@ -156,6 +159,7 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
           .clone()
           .addScaledVector(cameraDir.current, PROJECTILE_SPAWN_DISTANCE);
         const id = nextId.current++;
+        playFireSound();
         setProjectiles((list) => [
           ...list,
           {
@@ -182,6 +186,7 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
       setAnimalPos(null);
       setTargetCenter(null);
       const id = nextId.current++;
+      playDestroySound();
       setExplosions((list) => [...list, { id, position }]);
       cooldownAcc.current = 0;
       setPhase("cooldown");

@@ -1,13 +1,145 @@
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import type { Group, Mesh, MeshBasicMaterial } from "three";
-import { Color, Vector3 } from "three";
+import type { Group, Mesh, MeshBasicMaterial, Texture, WebGLRenderer } from "three";
+import {
+  CanvasTexture,
+  Color,
+  PMREMGenerator,
+  SRGBColorSpace,
+  Vector3,
+} from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { TAIL_LENGTH_MAX, type ProjectileSpawn } from "./gameTypes";
 
 const MAX_LIFE = 4;
 const EMIT_INTERVAL = 0.018;
 /** Pool sized for the longest slider setting so long tails stay dense. */
 const TRACER_COUNT = Math.ceil(TAIL_LENGTH_MAX / EMIT_INTERVAL) + 8;
+const SURFACE_SIZE = 512;
+
+type SurfaceMaps = {
+  colorMap: CanvasTexture;
+  roughnessMap: CanvasTexture;
+};
+
+let surfaceMaps: SurfaceMaps | null = null;
+const envByRenderer = new WeakMap<WebGLRenderer, Texture>();
+
+function goldSurfaceMaps(): SurfaceMaps {
+  if (surfaceMaps) {
+    return surfaceMaps;
+  }
+
+  const flecks = Array.from({ length: 110 }, () => ({
+    x: Math.random() * SURFACE_SIZE,
+    y: Math.random() * SURFACE_SIZE,
+    r: 0.7 + Math.random() * 2.6,
+    bright: 0.65 + Math.random() * 0.35,
+  }));
+
+  const colorCanvas = document.createElement("canvas");
+  colorCanvas.width = SURFACE_SIZE;
+  colorCanvas.height = SURFACE_SIZE;
+  const colorCtx = colorCanvas.getContext("2d");
+  if (!colorCtx) {
+    throw new Error("Could not paint projectile surface");
+  }
+
+  colorCtx.fillStyle = "#e2a01a";
+  colorCtx.fillRect(0, 0, SURFACE_SIZE, SURFACE_SIZE);
+
+  for (let i = 0; i < 22; i++) {
+    const x = Math.random() * SURFACE_SIZE;
+    const y = Math.random() * SURFACE_SIZE;
+    const radius = 48 + Math.random() * 110;
+    const gradient = colorCtx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, "rgba(255, 226, 150, 0.42)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    colorCtx.fillStyle = gradient;
+    colorCtx.beginPath();
+    colorCtx.arc(x, y, radius, 0, Math.PI * 2);
+    colorCtx.fill();
+  }
+
+  for (const fleck of flecks) {
+    colorCtx.fillStyle = `rgba(255, 250, 220, ${fleck.bright})`;
+    colorCtx.beginPath();
+    colorCtx.arc(fleck.x, fleck.y, fleck.r, 0, Math.PI * 2);
+    colorCtx.fill();
+  }
+
+  const colorMap = new CanvasTexture(colorCanvas);
+  colorMap.colorSpace = SRGBColorSpace;
+  colorMap.anisotropy = 8;
+  colorMap.needsUpdate = true;
+
+  const roughCanvas = document.createElement("canvas");
+  roughCanvas.width = SURFACE_SIZE;
+  roughCanvas.height = SURFACE_SIZE;
+  const roughCtx = roughCanvas.getContext("2d");
+  if (!roughCtx) {
+    throw new Error("Could not paint projectile roughness");
+  }
+
+  // Darker pixels are smoother. The map is the roughness (material.roughness = 1).
+  roughCtx.fillStyle = "rgb(120, 120, 120)";
+  roughCtx.fillRect(0, 0, SURFACE_SIZE, SURFACE_SIZE);
+
+  for (let i = 0; i < 18; i++) {
+    const x = Math.random() * SURFACE_SIZE;
+    const y = Math.random() * SURFACE_SIZE;
+    const radius = 40 + Math.random() * 80;
+    const gradient = roughCtx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, "rgba(40, 40, 40, 0.85)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    roughCtx.fillStyle = gradient;
+    roughCtx.beginPath();
+    roughCtx.arc(x, y, radius, 0, Math.PI * 2);
+    roughCtx.fill();
+  }
+
+  for (const fleck of flecks) {
+    roughCtx.fillStyle = "rgb(8, 8, 8)";
+    roughCtx.beginPath();
+    roughCtx.arc(fleck.x, fleck.y, fleck.r * 1.4, 0, Math.PI * 2);
+    roughCtx.fill();
+  }
+
+  const roughnessMap = new CanvasTexture(roughCanvas);
+  roughnessMap.anisotropy = 8;
+  roughnessMap.needsUpdate = true;
+
+  surfaceMaps = { colorMap, roughnessMap };
+  return surfaceMaps;
+}
+
+/** Studio reflections so the metal reads as shiny without scene-light only. */
+function goldEnvMap(renderer: WebGLRenderer): Texture {
+  const cached = envByRenderer.get(renderer);
+  if (cached) {
+    return cached;
+  }
+  const room = new RoomEnvironment();
+  const pmrem = new PMREMGenerator(renderer);
+  // Blur the probe so the ball picks up glossy highlights, not a sharp room reflection.
+  const texture = pmrem.fromScene(room, 0.18).texture;
+  pmrem.dispose();
+  room.traverse((obj) => {
+    const mesh = obj as Mesh;
+    if (!mesh.isMesh) {
+      return;
+    }
+    mesh.geometry.dispose();
+    const material = mesh.material;
+    if (Array.isArray(material)) {
+      material.forEach((entry) => entry.dispose());
+    } else {
+      material.dispose();
+    }
+  });
+  envByRenderer.set(renderer, texture);
+  return texture;
+}
 
 type TracerParticle = {
   active: boolean;
@@ -43,6 +175,9 @@ export function Projectile({
   onHit,
   onMiss,
 }: ProjectileProps) {
+  const gl = useThree((state) => state.gl);
+  const envMap = useMemo(() => goldEnvMap(gl), [gl]);
+  const { colorMap, roughnessMap } = useMemo(() => goldSurfaceMaps(), []);
   const meshRef = useRef<Mesh>(null);
   const tracerRef = useRef<Group>(null);
   const velocity = useRef(
@@ -184,9 +319,22 @@ export function Projectile({
         frustumCulled={false}
         renderOrder={10}
       >
-        <sphereGeometry args={[size, 20, 20]} />
-        {/* Unlit + depth-tested so it reads clearly over the camera feed */}
-        <meshBasicMaterial color="#ffe14a" depthTest depthWrite />
+        <sphereGeometry args={[size, 32, 24]} />
+        <meshPhysicalMaterial
+          map={colorMap}
+          roughnessMap={roughnessMap}
+          envMap={envMap}
+          color="#ffe7a0"
+          metalness={1}
+          roughness={1}
+          envMapIntensity={1.15}
+          clearcoat={0.4}
+          clearcoatRoughness={0.22}
+          emissive="#c47a10"
+          emissiveIntensity={0.08}
+          depthTest
+          depthWrite
+        />
       </mesh>
 
       <group ref={tracerRef} frustumCulled={false}>

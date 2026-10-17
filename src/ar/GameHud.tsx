@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AnimalId } from "../animals";
 import { ANIMALS, animalLabel } from "../animals";
+import {
+  isBackgroundMusicPlaying,
+  subscribeBackgroundMusic,
+  toggleBackgroundMusic,
+} from "../audio";
 import type { GamePhase, ProjectileSettings } from "./gameTypes";
 import {
   ANIMAL_HEIGHT_MAX,
@@ -51,7 +56,15 @@ export function GameHud({
   error,
 }: GameHudProps) {
   const [controlsVisible, setControlsVisible] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(isBackgroundMusicPlaying);
   const canShoot = phase === "live";
+
+  useEffect(() => {
+    setMusicPlaying(isBackgroundMusicPlaying());
+    return subscribeBackgroundMusic(() => {
+      setMusicPlaying(isBackgroundMusicPlaying());
+    });
+  }, []);
 
   return (
     <div className="hud">
@@ -92,6 +105,16 @@ export function GameHud({
           aria-label="Game controls"
         >
           <h1>Controls</h1>
+
+          <button
+            type="button"
+            className="button button--ghost control-sound"
+            onClick={() => {
+              setMusicPlaying(toggleBackgroundMusic());
+            }}
+          >
+            {musicPlaying ? "Pause sound" : "Resume sound"}
+          </button>
 
           <label className="control control--stack">
             <span>Animal</span>

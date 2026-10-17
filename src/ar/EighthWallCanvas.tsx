@@ -25,6 +25,7 @@ type EighthWallCanvasProps = {
 type R3fRoot = ReturnType<typeof createRoot>;
 
 function ArBridge({
+  armed,
   selectedAnimal,
   animalHeight,
   projectile,
@@ -32,6 +33,8 @@ function ArBridge({
   onPhaseChange,
   worldRef,
 }: {
+  /** Mount gameplay once the camera feed is visible, so the countdown is on screen. */
+  armed: boolean;
   selectedAnimal: AnimalId;
   animalHeight: number;
   projectile: ProjectileSettings;
@@ -42,15 +45,17 @@ function ArBridge({
   return (
     <>
       <SuppressR3fRender />
-      <GameWorld
-        ref={worldRef}
-        selectedAnimal={selectedAnimal}
-        animalHeight={animalHeight}
-        mode="ar"
-        projectile={projectile}
-        showFloor={showFloor}
-        onPhaseChange={onPhaseChange}
-      />
+      {armed ? (
+        <GameWorld
+          ref={worldRef}
+          selectedAnimal={selectedAnimal}
+          animalHeight={animalHeight}
+          mode="ar"
+          projectile={projectile}
+          showFloor={showFloor}
+          onPhaseChange={onPhaseChange}
+        />
+      ) : null}
     </>
   );
 }
@@ -68,6 +73,7 @@ export function EighthWallCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<R3fRoot | null>(null);
   const startedRef = useRef(false);
+  const cameraReadyRef = useRef(false);
   const phaseCbRef = useRef(onPhaseChange);
   const worldHandleRef = useRef(worldRef);
   const animalRef = useRef(selectedAnimal);
@@ -80,6 +86,27 @@ export function EighthWallCanvas({
   animalHeightRef.current = animalHeight;
   projectileRef.current = projectile;
   showFloorRef.current = showFloor;
+
+  const renderBridgeRef = useRef<() => void>(() => {});
+  renderBridgeRef.current = () => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    root.render(
+      <ArBridge
+        armed={cameraReadyRef.current}
+        selectedAnimal={animalRef.current}
+        animalHeight={animalHeightRef.current}
+        projectile={projectileRef.current}
+        showFloor={showFloorRef.current}
+        onPhaseChange={(phase, countdown) =>
+          phaseCbRef.current(phase, countdown)
+        }
+        worldRef={worldHandleRef.current}
+      />,
+    );
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -166,18 +193,10 @@ export function EighthWallCanvas({
               dpr: Math.min(window.devicePixelRatio, 2),
             });
 
-            root.render(
-              <ArBridge
-                selectedAnimal={animalRef.current}
-                animalHeight={animalHeightRef.current}
-                projectile={projectileRef.current}
-                showFloor={showFloorRef.current}
-                onPhaseChange={(phase, countdown) =>
-                  phaseCbRef.current(phase, countdown)
-                }
-                worldRef={worldHandleRef.current}
-              />,
-            );
+            // Gameplay stays unmounted until hasStream so the 3-2-1
+            // isn't spent under the 8th Wall loading overlay. If the
+            // camera was already granted, hasStream may have arrived first.
+            renderBridgeRef.current();
 
             xrCanvas.addEventListener(
               "touchmove",
@@ -186,8 +205,25 @@ export function EighthWallCanvas({
               },
               { passive: false },
             );
-
-            onRunningChange(true);
+          },
+          onCameraStatusChange: ({ status, reason }) => {
+            if (cancelled) {
+              return;
+            }
+            if (status === "hasStream") {
+              cameraReadyRef.current = true;
+              onRunningChange(true);
+              renderBridgeRef.current();
+              return;
+            }
+            if (status === "failed") {
+              onError(
+                reason
+                  ? `Camera unavailable (${reason})`
+                  : "Camera permission was denied",
+              );
+              onRunningChange(false);
+            }
           },
           onUpdate: () => {
             const now = performance.now();
@@ -225,22 +261,7 @@ export function EighthWallCanvas({
   }, []);
 
   useEffect(() => {
-    const root = rootRef.current;
-    if (!root) {
-      return;
-    }
-    root.render(
-      <ArBridge
-        selectedAnimal={selectedAnimal}
-        animalHeight={animalHeight}
-        projectile={projectile}
-        showFloor={showFloor}
-        onPhaseChange={(phase, countdown) =>
-          phaseCbRef.current(phase, countdown)
-        }
-        worldRef={worldHandleRef.current}
-      />,
-    );
+    renderBridgeRef.current();
   }, [selectedAnimal, animalHeight, projectile, showFloor]);
 
   return <canvas ref={canvasRef} id="camerafeed" className="camera-feed" />;

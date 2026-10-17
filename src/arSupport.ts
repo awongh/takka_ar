@@ -48,7 +48,7 @@ async function hasGetUserMedia(): Promise<boolean> {
   return true;
 }
 
-function isMobileLike(): boolean {
+export function isMobileLike(): boolean {
   const ua = navigator.userAgent;
   if (/Android|iPhone|iPad|iPod/i.test(ua)) {
     return true;

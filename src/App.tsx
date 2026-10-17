@@ -11,13 +11,17 @@ import {
   DEFAULT_TAIL_LENGTH,
 } from "./ar/gameTypes";
 import type { GameWorldHandle } from "./ar/GameWorld";
+import { LandingScreen } from "./ar/LandingScreen";
 import { PreviewCanvas } from "./ar/PreviewCanvas";
 import { isArCapable, isPreviewCapable } from "./arSupport";
+import { startBackgroundMusic } from "./audio";
 
 type Gate = "checking" | "ready" | "unsupported";
+type Screen = "landing" | "game";
 
 export function App() {
   const [gate, setGate] = useState<Gate>("checking");
+  const [screen, setScreen] = useState<Screen>("landing");
   const [arCapable, setArCapable] = useState(false);
   const [mode, setMode] = useState<"preview" | "ar">("preview");
   const [arRunning, setArRunning] = useState(false);
@@ -29,8 +33,8 @@ export function App() {
     gravityRatio: DEFAULT_GRAVITY_RATIO,
     tailLength: DEFAULT_TAIL_LENGTH,
   });
-  const [phase, setPhase] = useState<GamePhase>("countdown");
-  const [countdown, setCountdown] = useState<number | null>(3);
+  const [phase, setPhase] = useState<GamePhase>("idle");
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [showFloor, setShowFloor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const worldRef = useRef<GameWorldHandle>(null);
@@ -79,6 +83,28 @@ export function App() {
     );
   }
 
+  if (screen === "landing") {
+    return (
+      <LandingScreen
+        arCapable={arCapable}
+        onStartAr={() => {
+          startBackgroundMusic();
+          setError(null);
+          setPhase("idle");
+          setCountdown(null);
+          setMode("ar");
+          setScreen("game");
+        }}
+        onStartDemo={() => {
+          startBackgroundMusic();
+          setError(null);
+          setMode("preview");
+          setScreen("game");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       {mode === "ar" ? (
@@ -121,7 +147,10 @@ export function App() {
         onProjectileChange={setProjectile}
         onShowFloorChange={setShowFloor}
         onStartAr={() => {
+          startBackgroundMusic();
           setError(null);
+          setPhase("idle");
+          setCountdown(null);
           setMode("ar");
         }}
         onStopAr={() => {

@@ -14,6 +14,7 @@ export type Xr8PipelineModule = {
     canvasHeight: number;
   }) => void;
   onUpdate?: (args?: unknown) => void;
+  onCameraStatusChange?: (args: { status: string; reason?: string }) => void;
   onDetach?: () => void;
   onRemove?: () => void;
 };
