@@ -25,7 +25,7 @@ import {
   PROJECTILE_SPAWN_DISTANCE,
 } from "./gameTypes";
 import { Projectile } from "./Projectile";
-import { aimCamera, screenCenterRay } from "./screenRay";
+import { aimCamera, cameraAimRay } from "./screenRay";
 
 const COUNTDOWN_SECONDS = 3;
 const COOLDOWN_SECONDS = 2;
@@ -146,9 +146,9 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
         if (phaseRef.current !== "live" || !aliveRef.current) {
           return;
         }
-        // Through the center of the screen, using the camera 8th Wall is rendering.
+        // Along the camera's optical axis, same as the desktop preview.
         const aimed = aimCamera(camera);
-        if (!screenCenterRay(aimed, cameraPos.current, cameraDir.current)) {
+        if (!cameraAimRay(aimed, cameraPos.current, cameraDir.current)) {
           return;
         }
 
@@ -224,6 +224,7 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
             size={projectile.size}
             speed={projectile.speed}
             gravityRatio={projectile.gravityRatio}
+            tailLength={projectile.tailLength}
             targetCenter={targetCenter}
             targetRadius={targetRadius}
             onHit={handleHit}

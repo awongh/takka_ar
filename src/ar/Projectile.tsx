@@ -2,12 +2,12 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
 import { Color, Vector3 } from "three";
-import type { ProjectileSpawn } from "./gameTypes";
+import { TAIL_LENGTH_MAX, type ProjectileSpawn } from "./gameTypes";
 
 const MAX_LIFE = 4;
-const TRACER_COUNT = 28;
-const TRACER_LIFE = 0.55;
 const EMIT_INTERVAL = 0.018;
+/** Pool sized for the longest slider setting so long tails stay dense. */
+const TRACER_COUNT = Math.ceil(TAIL_LENGTH_MAX / EMIT_INTERVAL) + 8;
 
 type TracerParticle = {
   active: boolean;
@@ -25,6 +25,7 @@ type ProjectileProps = {
   size: number;
   speed: number;
   gravityRatio: number;
+  tailLength: number;
   targetCenter: Vector3 | null;
   targetRadius: number;
   onHit: (position: [number, number, number]) => void;
@@ -36,6 +37,7 @@ export function Projectile({
   size,
   speed,
   gravityRatio,
+  tailLength,
   targetCenter,
   targetRadius,
   onHit,
@@ -58,14 +60,14 @@ export function Projectile({
       Array.from({ length: TRACER_COUNT }, () => ({
         active: false,
         age: 0,
-        life: TRACER_LIFE,
+        life: tailLength,
         pos: new Vector3(),
         drift: new Vector3(),
         baseSize: size * 0.18,
         twinkle: Math.random() * Math.PI * 2,
         color: new Color(),
       })),
-    // Size at spawn locks particle scale; live size changes only affect new shots.
+    // Size/tail at spawn lock particle setup; live changes only affect new shots.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -78,7 +80,7 @@ export function Projectile({
     back.current.copy(vel).normalize().multiplyScalar(-(size * 0.55));
     particle.active = true;
     particle.age = 0;
-    particle.life = TRACER_LIFE * (0.7 + Math.random() * 0.5);
+    particle.life = tailLength * (0.7 + Math.random() * 0.5);
     particle.pos.copy(origin).add(back.current);
     particle.pos.x += (Math.random() - 0.5) * size * 0.35;
     particle.pos.y += (Math.random() - 0.5) * size * 0.35;

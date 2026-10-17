@@ -7,6 +7,8 @@ import {
   ANIMAL_HEIGHT_MIN,
   GRAVITY_RATIO_MAX,
   GRAVITY_RATIO_MIN,
+  TAIL_LENGTH_MAX,
+  TAIL_LENGTH_MIN,
 } from "./gameTypes";
 
 type GameHudProps = {
@@ -178,6 +180,23 @@ export function GameHud({
                 onProjectileChange({
                   ...projectile,
                   gravityRatio: Number(event.target.value),
+                })
+              }
+            />
+          </label>
+
+          <label className="control control--stack">
+            <span>Tail length ({projectile.tailLength.toFixed(2)} s)</span>
+            <input
+              type="range"
+              min={TAIL_LENGTH_MIN}
+              max={TAIL_LENGTH_MAX}
+              step={0.05}
+              value={projectile.tailLength}
+              onChange={(event) =>
+                onProjectileChange({
+                  ...projectile,
+                  tailLength: Number(event.target.value),
                 })
               }
             />

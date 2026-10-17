@@ -8,6 +8,7 @@ import {
   DEFAULT_GRAVITY_RATIO,
   DEFAULT_PROJECTILE_SIZE,
   DEFAULT_PROJECTILE_SPEED,
+  DEFAULT_TAIL_LENGTH,
 } from "./ar/gameTypes";
 import type { GameWorldHandle } from "./ar/GameWorld";
 import { PreviewCanvas } from "./ar/PreviewCanvas";
@@ -26,6 +27,7 @@ export function App() {
     size: DEFAULT_PROJECTILE_SIZE,
     speed: DEFAULT_PROJECTILE_SPEED,
     gravityRatio: DEFAULT_GRAVITY_RATIO,
+    tailLength: DEFAULT_TAIL_LENGTH,
   });
   const [phase, setPhase] = useState<GamePhase>("countdown");
   const [countdown, setCountdown] = useState<number | null>(3);

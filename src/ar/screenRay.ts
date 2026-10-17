@@ -1,22 +1,19 @@
-import { Raycaster, Vector2, Vector3, type Camera, type PerspectiveCamera } from "three";
-
-const raycaster = new Raycaster();
-const screenCenter = new Vector2(0, 0);
+import { Vector3, type Camera } from "three";
 
 /**
- * Ray through the middle of the viewport.
- * Phone intrinsics put the lens axis off the screen center, so
- * camera.getWorldDirection() does not match where the view is aimed.
+ * Ray along the camera's optical axis (local -Z).
+ * That is the direction the camera is pointing, orthogonal to the screen,
+ * and it matches the desktop preview. Unprojecting NDC (0, 0) tilts the
+ * shot on a phone because the lens principal point is not the image center.
  */
-export function screenCenterRay(
+export function cameraAimRay(
   camera: Camera,
   origin: Vector3,
   direction: Vector3,
 ): boolean {
-  camera.updateMatrixWorld(true);
-  raycaster.setFromCamera(screenCenter, camera as PerspectiveCamera);
-  origin.copy(raycaster.ray.origin);
-  direction.copy(raycaster.ray.direction);
+  camera.updateWorldMatrix(true, false);
+  camera.getWorldPosition(origin);
+  camera.getWorldDirection(direction);
   return direction.lengthSq() > 1e-8;
 }
 

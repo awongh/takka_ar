@@ -137,6 +137,10 @@ export function EighthWallCanvas({
               return;
             }
             const { scene, camera, renderer } = XR8.Threejs.xrScene();
+            // R3F would otherwise rebuild a centered frustum and wipe the
+            // phone intrinsics XR writes every frame.
+            (camera as THREE.PerspectiveCamera & { manual?: boolean }).manual =
+              true;
             // Keep the session origin at the phone. The ground is placed
             // CAMERA_HEIGHT_ABOVE_FLOOR below this pose, not at y = 0.
             camera.position.set(0, 0, 0);

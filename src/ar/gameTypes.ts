@@ -34,6 +34,13 @@ export const DEFAULT_PROJECTILE_SPEED = 1.5;
 export const GRAVITY_RATIO_MIN = 0;
 export const GRAVITY_RATIO_MAX = 1.2;
 export const DEFAULT_GRAVITY_RATIO = 0.35;
+/**
+ * How long glitter particles live behind the projectile, in seconds.
+ * Longer life → longer visible tail. Min matches the original fixed trail.
+ */
+export const TAIL_LENGTH_MIN = 0.55;
+export const TAIL_LENGTH_MAX = 1.8;
+export const DEFAULT_TAIL_LENGTH = TAIL_LENGTH_MIN;
 /** How far in front of the camera the projectile spawns (along look direction). */
 export const PROJECTILE_SPAWN_DISTANCE = 1.0;
 /** Minimum horizontal distance from the camera to the placed animal, in meters. */
@@ -50,6 +57,8 @@ export type ProjectileSettings = {
   speed: number;
   /** Multiplier of speed for downward acceleration (see GRAVITY_RATIO_*). */
   gravityRatio: number;
+  /** Glitter trail particle lifetime in seconds (see TAIL_LENGTH_*). */
+  tailLength: number;
 };
 
 /**

@@ -3,7 +3,7 @@ import { useRef } from "react";
 import type { Mesh } from "three";
 import { Vector3 } from "three";
 import { ANIMAL_PLACE_DISTANCE } from "./gameTypes";
-import { aimCamera, screenCenterRay } from "./screenRay";
+import { aimCamera, cameraAimRay } from "./screenRay";
 
 const FORWARD = new Vector3();
 const FLAT = new Vector3();
@@ -31,7 +31,7 @@ export function FloorReticle({
     }
 
     const aimed = aimCamera(camera);
-    if (!screenCenterRay(aimed, ORIGIN, FORWARD)) {
+    if (!cameraAimRay(aimed, ORIGIN, FORWARD)) {
       return;
     }
 
