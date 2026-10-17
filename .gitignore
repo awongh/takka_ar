@@ -12,6 +12,8 @@ node_modules
 dist
 dist-ssr
 *.local
+# Copied from @8thwall/* on Vite buildStart — do not commit binaries
+public/external
 # docs/ is the Pages publish folder — do not ignore
 
 # Editor directories and files

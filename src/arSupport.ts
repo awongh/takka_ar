@@ -1,74 +1,58 @@
-type XrNavigator = Navigator & {
-  xr?: {
-    isSessionSupported(mode: string): Promise<boolean>;
-  };
-};
-
 /**
- * Detects whether this device can use model-viewer's AR paths:
- * WebXR immersive-ar, Android Scene Viewer, or iOS Quick Look.
- * Mirrors the candidate checks used by @google/model-viewer.
+ * Detects whether this device can run 8th Wall world-tracking WebAR
+ * (camera + WebGL + secure context). Desktop may still use preview mode.
  */
 export async function isArCapable(): Promise<boolean> {
-  if (await supportsWebXrAr()) {
-    return true;
-  }
-
-  if (isQuickLookCandidate()) {
-    return true;
-  }
-
-  if (isSceneViewerCandidate()) {
-    return true;
-  }
-
-  return false;
-}
-
-async function supportsWebXrAr(): Promise<boolean> {
-  const xr = (navigator as XrNavigator).xr;
-  if (!xr?.isSessionSupported) {
+  if (!isSecureContext()) {
     return false;
   }
 
+  if (!hasWebGl()) {
+    return false;
+  }
+
+  if (!(await hasGetUserMedia())) {
+    return false;
+  }
+
+  // World tracking is aimed at phones/tablets; desktop uses OrbitControls preview.
+  return isMobileLike();
+}
+
+export function isPreviewCapable(): boolean {
+  return hasWebGl();
+}
+
+function isSecureContext(): boolean {
+  return window.isSecureContext === true;
+}
+
+function hasWebGl(): boolean {
   try {
-    return await xr.isSessionSupported("immersive-ar");
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      canvas.getContext("webgl") || canvas.getContext("webgl2"),
+    );
   } catch {
     return false;
   }
 }
 
-function isIos(): boolean {
-  const ua = navigator.userAgent;
-  const classicIos = /iPad|iPhone|iPod/.test(ua) && !("MSStream" in window);
-  const iPadOsDesktopUa =
-    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return classicIos || iPadOsDesktopUa;
+async function hasGetUserMedia(): Promise<boolean> {
+  const media = navigator.mediaDevices;
+  if (!media?.getUserMedia) {
+    return false;
+  }
+
+  // Presence of the API is enough; permission is requested when AR starts.
+  return true;
 }
 
-function isQuickLookCandidate(): boolean {
-  if (!isIos()) {
-    return false;
-  }
-
-  const isThirdPartyIosBrowser =
-    /CriOS\/|EdgiOS\/|FxiOS\/|GSA\/|DuckDuckGo\//.test(navigator.userAgent);
-  // Google Search App is not a reliable Quick Look host for model-viewer.
-  if (/GSA\//.test(navigator.userAgent)) {
-    return false;
-  }
-  if (isThirdPartyIosBrowser) {
+function isMobileLike(): boolean {
+  const ua = navigator.userAgent;
+  if (/Android|iPhone|iPad|iPod/i.test(ua)) {
     return true;
   }
-
-  const anchor = document.createElement("a");
-  return Boolean(anchor.relList?.supports?.("ar"));
-}
-
-function isSceneViewerCandidate(): boolean {
-  const ua = navigator.userAgent;
-  const isAndroid = /android/i.test(ua);
-  const isFirefox = /firefox/i.test(ua);
-  const isOculus = /OculusBrowser/i.test(ua);
-  return isAndroid && !isFirefox && !isOculus;
+  // iPadOS desktop UA
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
 }
