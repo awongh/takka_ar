@@ -8,9 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# Local Vite default; GitHub Pages uses committed docs/ instead
 dist
 dist-ssr
 *.local
+# docs/ is the Pages publish folder — do not ignore
 
 # Editor directories and files
 .vscode/*

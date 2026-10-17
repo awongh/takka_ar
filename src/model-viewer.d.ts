@@ -12,6 +12,8 @@ type ModelViewerJSX = DetailedHTMLProps<
   "ios-src"?: string;
   "camera-controls"?: boolean;
   "auto-rotate"?: boolean;
+  autoplay?: boolean;
+  "animation-name"?: string;
   "shadow-intensity"?: string | number;
   "touch-action"?: string;
 };

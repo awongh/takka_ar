@@ -1,6 +1,6 @@
 # takka_ar
 
-React + TypeScript [model-viewer](https://modelviewer.dev/) hello world. Shows the Astronaut GLB, basic UI controls (auto-rotate, camera, shadow, reset), and markerless AR via the built-in AR button (Quick Look on iOS, Scene Viewer / WebXR on Android).
+React + TypeScript [model-viewer](https://modelviewer.dev/) hello world. Shows one Quaternius animated animal at a time (Idle loop), basic UI controls (show/hide, animal picker, auto-rotate, camera, shadow, reset), and markerless AR via the built-in AR button (Quick Look on iOS, Scene Viewer / WebXR on Android).
 
 ## Setup
 
@@ -28,7 +28,7 @@ cloudflared tunnel --url http://localhost:5173
 ```
 
 3. Open the printed `https://….trycloudflare.com` URL on your phone  
-4. Tap the AR button to place the astronaut on a real surface
+4. Tap the AR button to place the animal on a real surface
 
 Point the tunnel at **http** (not https://localhost).
 
@@ -39,10 +39,12 @@ npm run build
 npm run preview
 ```
 
-Output is in `dist/`.
+Output is in `docs/` (GitHub Pages–style build).
+
+Animal glTF files live in `public/models/animals/` (copied from the vendor download in `outside_assets/`; that folder is not served at runtime).
 
 ## Device support
 
-- **iOS Safari**: AR via Quick Look (`ar` + USDZ / auto-generated USDZ)
+- **iOS Safari**: AR via Quick Look (`ar` + auto-generated USDZ)
 - **Android Chrome**: AR via WebXR or Scene Viewer (`ar-modes`)
 - **Desktop**: interactive 3D viewer; use a phone for surface AR
