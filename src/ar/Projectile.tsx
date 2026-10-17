@@ -4,11 +4,12 @@ import type { Mesh } from "three";
 import { Vector3 } from "three";
 import type { ProjectileSpawn } from "./gameTypes";
 
-const SPEED = 6;
-const MAX_LIFE = 2.5;
+const MAX_LIFE = 4;
 
 type ProjectileProps = {
   spawn: ProjectileSpawn;
+  size: number;
+  speed: number;
   targetCenter: Vector3 | null;
   targetRadius: number;
   onHit: (position: [number, number, number]) => void;
@@ -17,6 +18,8 @@ type ProjectileProps = {
 
 export function Projectile({
   spawn,
+  size,
+  speed,
   targetCenter,
   targetRadius,
   onHit,
@@ -24,22 +27,25 @@ export function Projectile({
 }: ProjectileProps) {
   const meshRef = useRef<Mesh>(null);
   const velocity = useRef(
-    new Vector3(...spawn.direction).normalize().multiplyScalar(SPEED),
+    new Vector3(...spawn.direction).normalize().multiplyScalar(speed),
   );
   const age = useRef(0);
   const alive = useRef(true);
+  const hitPadding = size * 1.2;
 
   useFrame((_, delta) => {
     if (!alive.current || !meshRef.current) {
       return;
     }
 
-    age.current += delta;
-    meshRef.current.position.addScaledVector(velocity.current, delta);
+    const step = Math.min(delta, 0.05);
+    age.current += step;
+    meshRef.current.position.addScaledVector(velocity.current, step);
 
-    if (targetCenter) {
+    // Grace period so we never despawn on the spawn frame.
+    if (targetCenter && age.current > 0.08) {
       const dist = meshRef.current.position.distanceTo(targetCenter);
-      if (dist <= targetRadius + 0.06) {
+      if (dist <= targetRadius + hitPadding) {
         alive.current = false;
         const { x, y, z } = meshRef.current.position;
         onHit([x, y, z]);
@@ -54,13 +60,15 @@ export function Projectile({
   });
 
   return (
-    <mesh ref={meshRef} position={spawn.origin} castShadow>
-      <sphereGeometry args={[0.05, 12, 12]} />
-      <meshStandardMaterial
-        color="#ffcf33"
-        emissive="#ff9a1f"
-        emissiveIntensity={0.6}
-      />
+    <mesh
+      ref={meshRef}
+      position={spawn.origin}
+      frustumCulled={false}
+      renderOrder={10}
+    >
+      <sphereGeometry args={[size, 20, 20]} />
+      {/* Unlit + depth-tested so it reads clearly over the camera feed */}
+      <meshBasicMaterial color="#ffe14a" depthTest depthWrite />
     </mesh>
   );
 }

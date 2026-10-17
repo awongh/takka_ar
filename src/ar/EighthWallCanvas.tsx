@@ -4,7 +4,7 @@ import * as THREE from "three";
 import type { AnimalId } from "../animals";
 import type { XR8Api } from "../xr8";
 import { loadXr8, stopXr8 } from "./bootXr8";
-import type { GamePhase } from "./gameTypes";
+import type { GamePhase, ProjectileSettings } from "./gameTypes";
 import {
   GameWorld,
   SuppressR3fRender,
@@ -13,6 +13,9 @@ import {
 
 type EighthWallCanvasProps = {
   selectedAnimal: AnimalId;
+  animalHeight: number;
+  projectile: ProjectileSettings;
+  showFloor: boolean;
   onPhaseChange: (phase: GamePhase, countdown: number | null) => void;
   worldRef: RefObject<GameWorldHandle | null>;
   onRunningChange: (running: boolean) => void;
@@ -23,10 +26,16 @@ type R3fRoot = ReturnType<typeof createRoot>;
 
 function ArBridge({
   selectedAnimal,
+  animalHeight,
+  projectile,
+  showFloor,
   onPhaseChange,
   worldRef,
 }: {
   selectedAnimal: AnimalId;
+  animalHeight: number;
+  projectile: ProjectileSettings;
+  showFloor: boolean;
   onPhaseChange: (phase: GamePhase, countdown: number | null) => void;
   worldRef: RefObject<GameWorldHandle | null>;
 }) {
@@ -36,7 +45,10 @@ function ArBridge({
       <GameWorld
         ref={worldRef}
         selectedAnimal={selectedAnimal}
+        animalHeight={animalHeight}
         mode="ar"
+        projectile={projectile}
+        showFloor={showFloor}
         onPhaseChange={onPhaseChange}
       />
     </>
@@ -45,6 +57,9 @@ function ArBridge({
 
 export function EighthWallCanvas({
   selectedAnimal,
+  animalHeight,
+  projectile,
+  showFloor,
   onPhaseChange,
   worldRef,
   onRunningChange,
@@ -55,8 +70,16 @@ export function EighthWallCanvas({
   const startedRef = useRef(false);
   const phaseCbRef = useRef(onPhaseChange);
   const worldHandleRef = useRef(worldRef);
+  const animalRef = useRef(selectedAnimal);
+  const animalHeightRef = useRef(animalHeight);
+  const projectileRef = useRef(projectile);
+  const showFloorRef = useRef(showFloor);
   phaseCbRef.current = onPhaseChange;
   worldHandleRef.current = worldRef;
+  animalRef.current = selectedAnimal;
+  animalHeightRef.current = animalHeight;
+  projectileRef.current = projectile;
+  showFloorRef.current = showFloor;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -80,7 +103,8 @@ export function EighthWallCanvas({
         const extras = window.XRExtras;
         const landing = window.LandingPage;
 
-        XR8.XrController.configure({});
+        // Absolute scale → world units are meters, so animal height is real-world size.
+        XR8.XrController.configure({ scale: "absolute" });
 
         const modules = [
           XR8.GlTextureRenderer.pipelineModule(),
@@ -100,6 +124,12 @@ export function EighthWallCanvas({
           modules.push(extras.RuntimeError.pipelineModule());
         }
 
+        // R3F `advance(timestamp)` in frameloop="never" uses timestamp as seconds.
+        // performance.now() is milliseconds, so passing it raw made every AR
+        // frame ~16 "seconds" and projectiles left the view instantly.
+        let simTime = 0;
+        let lastFrameMs = performance.now();
+
         modules.push({
           name: "takka-r3f",
           onStart: ({ canvas: xrCanvas }) => {
@@ -107,7 +137,9 @@ export function EighthWallCanvas({
               return;
             }
             const { scene, camera, renderer } = XR8.Threejs.xrScene();
-            camera.position.set(0, 2, 2);
+            // Keep the session origin at the phone. The ground is placed
+            // CAMERA_HEIGHT_ABOVE_FLOOR below this pose, not at y = 0.
+            camera.position.set(0, 0, 0);
             XR8.XrController.updateCameraProjectionMatrix({
               origin: camera.position,
               facing: camera.quaternion,
@@ -132,7 +164,10 @@ export function EighthWallCanvas({
 
             root.render(
               <ArBridge
-                selectedAnimal={selectedAnimal}
+                selectedAnimal={animalRef.current}
+                animalHeight={animalHeightRef.current}
+                projectile={projectileRef.current}
+                showFloor={showFloorRef.current}
                 onPhaseChange={(phase, countdown) =>
                   phaseCbRef.current(phase, countdown)
                 }
@@ -151,7 +186,11 @@ export function EighthWallCanvas({
             onRunningChange(true);
           },
           onUpdate: () => {
-            advance(performance.now(), true);
+            const now = performance.now();
+            const dt = Math.min(0.05, Math.max(0, (now - lastFrameMs) / 1000));
+            lastFrameMs = now;
+            simTime += dt;
+            advance(simTime, true);
           },
         });
 
@@ -177,7 +216,7 @@ export function EighthWallCanvas({
       void stopXr8();
       startedRef.current = false;
     };
-    // Session boots once; animal updates re-render via the effect below.
+    // Session boots once; prop updates re-render via the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -189,13 +228,16 @@ export function EighthWallCanvas({
     root.render(
       <ArBridge
         selectedAnimal={selectedAnimal}
+        animalHeight={animalHeight}
+        projectile={projectile}
+        showFloor={showFloor}
         onPhaseChange={(phase, countdown) =>
           phaseCbRef.current(phase, countdown)
         }
         worldRef={worldHandleRef.current}
       />,
     );
-  }, [selectedAnimal]);
+  }, [selectedAnimal, animalHeight, projectile, showFloor]);
 
   return <canvas ref={canvasRef} id="camerafeed" className="camera-feed" />;
 }
