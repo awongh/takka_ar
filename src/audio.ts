@@ -46,14 +46,21 @@ function ensureMusic(): HTMLAudioElement {
   return music;
 }
 
-/** Start looping BGM. Call from a user gesture (button click). */
+/** Start looping BGM. Safe to call on landing mount; may wait for a gesture. */
 export function startBackgroundMusic(): void {
   try {
-    musicPausedByUser = false;
+    if (musicPausedByUser) {
+      return;
+    }
     const audio = ensureMusic();
-    void audio.play().catch(() => {
-      // Retry on the next interaction if the browser blocks autoplay.
-    });
+    void audio
+      .play()
+      .then(() => {
+        notifyMusicListeners();
+      })
+      .catch(() => {
+        notifyMusicListeners();
+      });
     notifyMusicListeners();
   } catch {
     // ignore

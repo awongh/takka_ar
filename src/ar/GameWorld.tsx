@@ -2,7 +2,6 @@ import { useFrame, useThree } from "@react-three/fiber";
 import {
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -85,12 +84,36 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
     placePosRef.current = placePos;
     aliveRef.current = alive;
 
-    useEffect(() => {
-      onPhaseChange(phase, countdown);
-    }, [phase, countdown, onPhaseChange]);
+    const onPhaseChangeRef = useRef(onPhaseChange);
+    onPhaseChangeRef.current = onPhaseChange;
+    const reportedRef = useRef<{
+      phase: GamePhase;
+      countdown: number | null;
+    } | null>(null);
+
+    const publish = useCallback(
+      (nextPhase: GamePhase, nextCountdown: number | null) => {
+        const prev = reportedRef.current;
+        if (
+          prev &&
+          prev.phase === nextPhase &&
+          prev.countdown === nextCountdown
+        ) {
+          return;
+        }
+        reportedRef.current = {
+          phase: nextPhase,
+          countdown: nextCountdown,
+        };
+        onPhaseChangeRef.current(nextPhase, nextCountdown);
+      },
+      [],
+    );
 
     const startCountdown = useCallback(() => {
       countdownAcc.current = 0;
+      phaseRef.current = "countdown";
+      countdownRef.current = COUNTDOWN_SECONDS;
       setCountdown(COUNTDOWN_SECONDS);
       setPhase("countdown");
       setAlive(false);
@@ -100,48 +123,52 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
     }, []);
 
     useFrame((_, delta) => {
-      const step = Number.isFinite(delta)
-        ? Math.min(0.05, Math.max(0, delta))
-        : 0;
+      // A permission prompt or app switch can deliver one huge step, or keep
+      // frames running while the page is covered. Don't spend the countdown
+      // on time the player can't see.
+      const hidden = document.visibilityState === "hidden";
+      const raw = Number.isFinite(delta) ? Math.max(0, delta) : 0;
+      const timersPaused = hidden || raw > 0.5;
+      const step = timersPaused ? 0 : Math.min(0.05, raw);
 
-      if (!floorLocked.current) {
+      if (!floorLocked.current && !hidden) {
         aimCamera(camera).getWorldPosition(cameraPos.current);
         floorLocked.current = true;
         setFloorY(cameraPos.current.y - CAMERA_HEIGHT_ABOVE_FLOOR);
       }
 
-      const current = phaseRef.current;
-
-      if (current === "countdown") {
+      if (phaseRef.current === "countdown") {
         countdownAcc.current += step;
         const remaining = Math.max(
           1,
           Math.ceil(COUNTDOWN_SECONDS - countdownAcc.current),
         );
-        if (
-          countdownAcc.current < COUNTDOWN_SECONDS &&
-          remaining !== countdownRef.current
-        ) {
-          setCountdown(remaining);
-        }
         if (countdownAcc.current >= COUNTDOWN_SECONDS) {
           const pos =
             mode === "preview"
               ? ([0, 0, -ANIMAL_PLACE_DISTANCE] as [number, number, number])
               : placePosRef.current;
+          phaseRef.current = "live";
+          countdownRef.current = null;
+          aliveRef.current = true;
           setAnimalPos(pos);
           setAlive(true);
           setCountdown(null);
           setPhase("live");
+        } else if (remaining !== countdownRef.current) {
+          countdownRef.current = remaining;
+          setCountdown(remaining);
         }
-      }
-
-      if (current === "cooldown") {
+      } else if (phaseRef.current === "cooldown") {
         cooldownAcc.current += step;
         if (cooldownAcc.current >= COOLDOWN_SECONDS) {
           startCountdown();
         }
       }
+
+      // Report from the frame loop. The R3F tree is a separate root, and its
+      // passive effects can be dropped while 8th Wall is starting the camera.
+      publish(phaseRef.current, countdownRef.current);
     });
 
     useImperativeHandle(ref, () => ({
@@ -189,6 +216,8 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
       playDestroySound();
       setExplosions((list) => [...list, { id, position }]);
       cooldownAcc.current = 0;
+      phaseRef.current = "cooldown";
+      countdownRef.current = null;
       setPhase("cooldown");
     }, []);
 

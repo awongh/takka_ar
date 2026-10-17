@@ -14,8 +14,6 @@ import type { GameWorldHandle } from "./ar/GameWorld";
 import { LandingScreen } from "./ar/LandingScreen";
 import { PreviewCanvas } from "./ar/PreviewCanvas";
 import { isArCapable, isPreviewCapable } from "./arSupport";
-import { startBackgroundMusic } from "./audio";
-
 type Gate = "checking" | "ready" | "unsupported";
 type Screen = "landing" | "game";
 
@@ -88,7 +86,6 @@ export function App() {
       <LandingScreen
         arCapable={arCapable}
         onStartAr={() => {
-          startBackgroundMusic();
           setError(null);
           setPhase("idle");
           setCountdown(null);
@@ -96,7 +93,6 @@ export function App() {
           setScreen("game");
         }}
         onStartDemo={() => {
-          startBackgroundMusic();
           setError(null);
           setMode("preview");
           setScreen("game");
@@ -147,7 +143,6 @@ export function App() {
         onProjectileChange={setProjectile}
         onShowFloorChange={setShowFloor}
         onStartAr={() => {
-          startBackgroundMusic();
           setError(null);
           setPhase("idle");
           setCountdown(null);

@@ -1,4 +1,4 @@
-import { advance, createRoot } from "@react-three/fiber";
+import { advance, createRoot, flushSync } from "@react-three/fiber";
 import { useEffect, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import type { AnimalId } from "../animals";
@@ -24,6 +24,27 @@ type EighthWallCanvasProps = {
 
 type R3fRoot = ReturnType<typeof createRoot>;
 
+/**
+ * 8th Wall's loading module covers the HUD (`#loadingContainer` is z-index 800)
+ * until a few frames after the camera is up, then fades `#loadBackground` out.
+ * `hasStream` fires earlier — as soon as permission is granted — and can also
+ * fire before our R3F root exists.
+ */
+function xrLoadingOverlayVisible(): boolean {
+  const background = document.getElementById("loadBackground");
+  if (!background?.isConnected) {
+    return false;
+  }
+  if (background.classList.contains("hidden")) {
+    return false;
+  }
+  if (!background.classList.contains("fade-out")) {
+    return true;
+  }
+  const opacity = Number.parseFloat(window.getComputedStyle(background).opacity);
+  return !Number.isFinite(opacity) || opacity > 0.05;
+}
+
 function ArBridge({
   armed,
   selectedAnimal,
@@ -33,7 +54,7 @@ function ArBridge({
   onPhaseChange,
   worldRef,
 }: {
-  /** Mount gameplay once the camera feed is visible, so the countdown is on screen. */
+  /** Mount gameplay once the camera feed is visible and the loading overlay is gone. */
   armed: boolean;
   selectedAnimal: AnimalId;
   animalHeight: number;
@@ -73,7 +94,9 @@ export function EighthWallCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<R3fRoot | null>(null);
   const startedRef = useRef(false);
+  const cancelledRef = useRef(false);
   const cameraReadyRef = useRef(false);
+  const armedRef = useRef(false);
   const phaseCbRef = useRef(onPhaseChange);
   const worldHandleRef = useRef(worldRef);
   const animalRef = useRef(selectedAnimal);
@@ -93,19 +116,52 @@ export function EighthWallCanvas({
     if (!root) {
       return;
     }
-    root.render(
-      <ArBridge
-        armed={cameraReadyRef.current}
-        selectedAnimal={animalRef.current}
-        animalHeight={animalHeightRef.current}
-        projectile={projectileRef.current}
-        showFloor={showFloorRef.current}
-        onPhaseChange={(phase, countdown) =>
-          phaseCbRef.current(phase, countdown)
-        }
-        worldRef={worldHandleRef.current}
-      />,
-    );
+    const draw = () => {
+      root.render(
+        <ArBridge
+          armed={armedRef.current}
+          selectedAnimal={animalRef.current}
+          animalHeight={animalHeightRef.current}
+          projectile={projectileRef.current}
+          showFloor={showFloorRef.current}
+          onPhaseChange={(phase, countdown) =>
+            phaseCbRef.current(phase, countdown)
+          }
+          worldRef={worldHandleRef.current}
+        />,
+      );
+    };
+    // The second render (arming gameplay) goes through updateContainer, which
+    // is async. A permission dialog or the loading-screen startup can starve
+    // that update so GameWorld never mounts. Flush it so the countdown starts
+    // on this frame.
+    try {
+      flushSync(draw);
+    } catch {
+      draw();
+    }
+  };
+
+  const tryArmRef = useRef<() => void>(() => {});
+  tryArmRef.current = () => {
+    if (
+      cancelledRef.current ||
+      armedRef.current ||
+      !cameraReadyRef.current ||
+      !rootRef.current
+    ) {
+      return;
+    }
+    if (xrLoadingOverlayVisible()) {
+      return;
+    }
+    armedRef.current = true;
+    try {
+      renderBridgeRef.current();
+      onRunningChange(true);
+    } catch {
+      armedRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -115,7 +171,9 @@ export function EighthWallCanvas({
     }
     startedRef.current = true;
 
-    let cancelled = false;
+    cancelledRef.current = false;
+    cameraReadyRef.current = false;
+    armedRef.current = false;
     let XR8: XR8Api | null = null;
 
     window.THREE = THREE;
@@ -123,7 +181,7 @@ export function EighthWallCanvas({
     void (async () => {
       try {
         XR8 = await loadXr8();
-        if (cancelled || !canvasRef.current) {
+        if (cancelledRef.current || !canvasRef.current) {
           return;
         }
 
@@ -193,10 +251,13 @@ export function EighthWallCanvas({
               dpr: Math.min(window.devicePixelRatio, 2),
             });
 
-            // Gameplay stays unmounted until hasStream so the 3-2-1
-            // isn't spent under the 8th Wall loading overlay. If the
-            // camera was already granted, hasStream may have arrived first.
+            // onStart runs only after the camera session has started, but
+            // the loading overlay is still up. Mount the shell now and arm
+            // gameplay once that overlay is gone. hasStream often arrived
+            // before this root existed.
+            cameraReadyRef.current = true;
             renderBridgeRef.current();
+            tryArmRef.current();
 
             xrCanvas.addEventListener(
               "touchmove",
@@ -207,13 +268,14 @@ export function EighthWallCanvas({
             );
           },
           onCameraStatusChange: ({ status, reason }) => {
-            if (cancelled) {
+            if (cancelledRef.current) {
               return;
             }
-            if (status === "hasStream") {
+            // hasStream: permission granted. hasVideo: first frame.
+            // Both can precede onStart, when the root does not exist yet.
+            if (status === "hasStream" || status === "hasVideo") {
               cameraReadyRef.current = true;
-              onRunningChange(true);
-              renderBridgeRef.current();
+              tryArmRef.current();
               return;
             }
             if (status === "failed") {
@@ -226,6 +288,7 @@ export function EighthWallCanvas({
             }
           },
           onUpdate: () => {
+            tryArmRef.current();
             const now = performance.now();
             const dt = Math.min(0.05, Math.max(0, (now - lastFrameMs) / 1000));
             lastFrameMs = now;
@@ -245,7 +308,9 @@ export function EighthWallCanvas({
     })();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
+      cameraReadyRef.current = false;
+      armedRef.current = false;
       onRunningChange(false);
       try {
         rootRef.current?.unmount();
