@@ -5,6 +5,7 @@ import { GameHud } from "./ar/GameHud";
 import type { GamePhase, ProjectileSettings } from "./ar/gameTypes";
 import {
   DEFAULT_ANIMAL_HEIGHT,
+  DEFAULT_GRAVITY_RATIO,
   DEFAULT_PROJECTILE_SIZE,
   DEFAULT_PROJECTILE_SPEED,
 } from "./ar/gameTypes";
@@ -24,6 +25,7 @@ export function App() {
   const [projectile, setProjectile] = useState<ProjectileSettings>({
     size: DEFAULT_PROJECTILE_SIZE,
     speed: DEFAULT_PROJECTILE_SPEED,
+    gravityRatio: DEFAULT_GRAVITY_RATIO,
   });
   const [phase, setPhase] = useState<GamePhase>("countdown");
   const [countdown, setCountdown] = useState<number | null>(3);

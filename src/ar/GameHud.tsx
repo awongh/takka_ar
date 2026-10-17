@@ -2,7 +2,12 @@ import { useState } from "react";
 import type { AnimalId } from "../animals";
 import { ANIMALS, animalLabel } from "../animals";
 import type { GamePhase, ProjectileSettings } from "./gameTypes";
-import { ANIMAL_HEIGHT_MAX, ANIMAL_HEIGHT_MIN } from "./gameTypes";
+import {
+  ANIMAL_HEIGHT_MAX,
+  ANIMAL_HEIGHT_MIN,
+  GRAVITY_RATIO_MAX,
+  GRAVITY_RATIO_MIN,
+} from "./gameTypes";
 
 type GameHudProps = {
   mode: "preview" | "ar";
@@ -154,6 +159,25 @@ export function GameHud({
                 onProjectileChange({
                   ...projectile,
                   speed: Number(event.target.value),
+                })
+              }
+            />
+          </label>
+
+          <label className="control control--stack">
+            <span>
+              Gravity ({projectile.gravityRatio.toFixed(2)} × speed)
+            </span>
+            <input
+              type="range"
+              min={GRAVITY_RATIO_MIN}
+              max={GRAVITY_RATIO_MAX}
+              step={0.05}
+              value={projectile.gravityRatio}
+              onChange={(event) =>
+                onProjectileChange({
+                  ...projectile,
+                  gravityRatio: Number(event.target.value),
                 })
               }
             />

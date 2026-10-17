@@ -223,6 +223,7 @@ export const GameWorld = forwardRef<GameWorldHandle, GameWorldProps>(
             spawn={spawn}
             size={projectile.size}
             speed={projectile.speed}
+            gravityRatio={projectile.gravityRatio}
             targetCenter={targetCenter}
             targetRadius={targetRadius}
             onHit={handleHit}

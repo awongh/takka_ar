@@ -26,6 +26,14 @@ export type GamePhase = "idle" | "countdown" | "live" | "cooldown";
 export const DEFAULT_PROJECTILE_SIZE = 0.23;
 /** Default projectile speed in world units per second (keep slow enough to see). */
 export const DEFAULT_PROJECTILE_SPEED = 1.5;
+/**
+ * Downward acceleration as a multiple of projectile speed:
+ * `ay = -gravityRatio * speed` (m/s² when speed is m/s).
+ * Keeps the arc readable at both slow and fast slider settings.
+ */
+export const GRAVITY_RATIO_MIN = 0;
+export const GRAVITY_RATIO_MAX = 1.2;
+export const DEFAULT_GRAVITY_RATIO = 0.35;
 /** How far in front of the camera the projectile spawns (along look direction). */
 export const PROJECTILE_SPAWN_DISTANCE = 1.0;
 /** Minimum horizontal distance from the camera to the placed animal, in meters. */
@@ -40,6 +48,8 @@ export const CAMERA_HEIGHT_ABOVE_FLOOR = 1.45;
 export type ProjectileSettings = {
   size: number;
   speed: number;
+  /** Multiplier of speed for downward acceleration (see GRAVITY_RATIO_*). */
+  gravityRatio: number;
 };
 
 /**
