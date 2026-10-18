@@ -7,6 +7,7 @@ import {
 } from "../audio";
 
 const backgroundSrc = `${import.meta.env.BASE_URL}images/background.jpg`;
+const callumSrc = `${import.meta.env.BASE_URL}images/callum.png`;
 
 type LandingScreenProps = {
 	arCapable: boolean;
@@ -50,6 +51,14 @@ export function LandingScreen({
 			style={{ backgroundImage: `url(${backgroundSrc})` }}
 		>
 			<div className="landing-veil" aria-hidden="true" />
+
+			<img
+				className="landing-callum"
+				src={callumSrc}
+				alt=""
+				aria-hidden="true"
+				draggable={false}
+			/>
 
 			<button
 				type="button"

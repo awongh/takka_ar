@@ -11,9 +11,11 @@ import {
   DEFAULT_TAIL_LENGTH,
 } from "./ar/gameTypes";
 import type { GameWorldHandle } from "./ar/GameWorld";
+import { loadXr8 } from "./ar/bootXr8";
 import { LandingScreen } from "./ar/LandingScreen";
 import { PreviewCanvas } from "./ar/PreviewCanvas";
 import { isArCapable, isPreviewCapable } from "./arSupport";
+
 type Gate = "checking" | "ready" | "unsupported";
 type Screen = "landing" | "game";
 
@@ -35,6 +37,7 @@ export function App() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showFloor, setShowFloor] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelError, setModelError] = useState<string | null>(null);
   const worldRef = useRef<GameWorldHandle>(null);
 
   useEffect(() => {
@@ -47,6 +50,13 @@ export function App() {
       }
       setArCapable(arOk);
       setGate(previewOk ? "ready" : "unsupported");
+      // Warm the XR scripts while the landing screen is up so Start AR can
+      // call XR8.run without waiting on the download first.
+      if (arOk) {
+        void loadXr8().catch(() => {
+          // Surface the error when the user actually starts AR.
+        });
+      }
     })();
     return () => {
       cancelled = true;
@@ -60,6 +70,31 @@ export function App() {
     },
     [],
   );
+
+  // Landing and the desktop-preview HUD both enter through here. The engine
+  // may already be loaded, and the previous pipeline may already be cleared.
+  const beginAr = useCallback(() => {
+    setError(null);
+    setModelError(null);
+    setPhase("idle");
+    setCountdown(null);
+    setArRunning(false);
+    setMode("ar");
+    setScreen("game");
+  }, []);
+
+  // Stop unmounts the AR canvas (which releases the XR pipeline) and shows
+  // the landing screen. `mode` stays on preview so a game shell, if it were
+  // still mounted, would not immediately open another camera session.
+  const leaveAr = useCallback(() => {
+    setScreen("landing");
+    setMode("preview");
+    setArRunning(false);
+    setPhase("idle");
+    setCountdown(null);
+    setError(null);
+    setModelError(null);
+  }, []);
 
   if (gate === "checking") {
     return (
@@ -85,15 +120,10 @@ export function App() {
     return (
       <LandingScreen
         arCapable={arCapable}
-        onStartAr={() => {
-          setError(null);
-          setPhase("idle");
-          setCountdown(null);
-          setMode("ar");
-          setScreen("game");
-        }}
+        onStartAr={beginAr}
         onStartDemo={() => {
           setError(null);
+          setModelError(null);
           setMode("preview");
           setScreen("game");
         }}
@@ -116,6 +146,7 @@ export function App() {
             setError(message);
             setMode("preview");
           }}
+          onModelError={setModelError}
         />
       ) : (
         <PreviewCanvas
@@ -142,18 +173,10 @@ export function App() {
         onAnimalHeightChange={setAnimalHeight}
         onProjectileChange={setProjectile}
         onShowFloorChange={setShowFloor}
-        onStartAr={() => {
-          setError(null);
-          setPhase("idle");
-          setCountdown(null);
-          setMode("ar");
-        }}
-        onStopAr={() => {
-          setMode("preview");
-          setArRunning(false);
-        }}
+        onStartAr={beginAr}
+        onStopAr={leaveAr}
         onShoot={() => worldRef.current?.shoot()}
-        error={error}
+        error={error ?? modelError}
       />
     </div>
   );

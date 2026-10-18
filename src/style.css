@@ -4,13 +4,29 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  /* 8th Wall's extras stylesheet sets `* { box-sizing: inherit }` after load.
+     The initial value is content-box, so padded full-screen elements then
+     stick out past the viewport. Keep the root on border-box so inherit
+     still means border-box. */
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  /* svh stays put when the mobile toolbar shows or hides. dvh changes with
+     that toolbar and makes the whole page resize. */
+  height: 100svh;
+  overflow: hidden;
+  background: #0e1116;
+}
+
 body,
 #root {
   margin: 0;
   width: 100%;
   height: 100%;
+  height: 100svh;
   overflow: hidden;
+  overscroll-behavior: none;
   background: #0e1116;
   font-family:
     Outfit,
@@ -21,19 +37,38 @@ body,
   color: #1a1d23;
 }
 
+body {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+
 .app {
   position: relative;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .status {
   display: grid;
-  place-content: center;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  align-content: safe center;
   gap: 0.75rem;
   width: 100%;
   height: 100%;
-  padding: 1.5rem;
+  min-width: 0;
+  min-height: 0;
+  padding: max(1.5rem, env(safe-area-inset-top, 0px))
+    max(1.5rem, env(safe-area-inset-right, 0px))
+    max(1.5rem, env(safe-area-inset-bottom, 0px))
+    max(1.5rem, env(safe-area-inset-left, 0px));
+  overflow: auto;
   text-align: center;
   background: #eceff3;
 }
@@ -43,9 +78,14 @@ body,
   font-size: 1.35rem;
 }
 
+.status h1,
+.status p {
+  max-width: min(28rem, 100%);
+  min-width: 0;
+}
+
 .status p {
   margin: 0;
-  max-width: 28rem;
   justify-self: center;
   line-height: 1.45;
   color: #5b6472;
@@ -62,15 +102,19 @@ body,
 
 .landing {
   position: relative;
-  display: grid;
-  place-content: center;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  justify-content: safe center;
   width: 100%;
   height: 100%;
-  padding: max(1.5rem, env(safe-area-inset-top))
-    max(1.25rem, env(safe-area-inset-right))
-    max(1.5rem, env(safe-area-inset-bottom))
-    max(1.25rem, env(safe-area-inset-left));
+  min-width: 0;
+  min-height: 0;
+  padding: max(1.5rem, env(safe-area-inset-top, 0px))
+    max(1.25rem, env(safe-area-inset-right, 0px))
+    max(1.5rem, env(safe-area-inset-bottom, 0px))
+    max(1.25rem, env(safe-area-inset-left, 0px));
   text-align: center;
   color: #f7f1e6;
   background-color: #1a2418;
@@ -98,10 +142,25 @@ body,
   pointer-events: none;
 }
 
+.landing-callum {
+  position: fixed;
+  left: max(0px, env(safe-area-inset-left, 0px));
+  bottom: max(0px, env(safe-area-inset-bottom, 0px));
+  z-index: 0;
+  width: min(42vw, 22rem);
+  max-height: 70svh;
+  height: auto;
+  object-fit: contain;
+  object-position: left bottom;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .landing-sound {
-  position: absolute;
-  top: max(0.85rem, env(safe-area-inset-top));
-  right: max(0.85rem, env(safe-area-inset-right));
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top, 0px));
+  right: max(0.85rem, env(safe-area-inset-right, 0px));
   z-index: 2;
   display: grid;
   place-items: center;
@@ -140,7 +199,13 @@ body,
   display: grid;
   justify-items: center;
   gap: 1rem;
+  flex: none;
   width: min(28rem, 100%);
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.25rem, 4vw, 2rem);
   border: 1px solid rgba(247, 241, 230, 0.22);
   border-radius: 1.35rem;
@@ -155,7 +220,8 @@ body,
 
 .landing-panel h1 {
   margin: 0;
-  max-width: 16ch;
+  max-width: min(16ch, 100%);
+  min-width: 0;
   font-family: Fraunces, Georgia, "Times New Roman", serif;
   font-size: clamp(1.85rem, 6.5vw, 2.55rem);
   font-weight: 700;
@@ -163,7 +229,7 @@ body,
   line-height: 1.12;
   letter-spacing: -0.01em;
   color: #fff8ee;
-  text-wrap: balance;
+  overflow-wrap: break-word;
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
 }
 
@@ -173,7 +239,8 @@ body,
 
 .landing-panel p {
   margin: 0;
-  max-width: 24rem;
+  max-width: min(24rem, 100%);
+  min-width: 0;
   line-height: 1.5;
   font-size: 1rem;
   font-weight: 400;
@@ -193,7 +260,8 @@ body,
 }
 
 .button--start {
-  min-width: min(14rem, 80vw);
+  max-width: 100%;
+  min-width: min(14rem, 100%);
   padding: 1rem 1.5rem;
   font-size: 1.15rem;
   font-weight: 700;
@@ -249,10 +317,29 @@ body,
 }
 
 .game-canvas,
-.camera-feed {
-  display: block;
+.game-canvas > div {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-canvas {
+  display: block;
+}
+
+/* The drawing-buffer width/height attributes are the canvas min-content size.
+   Left alone, that size is wider than the phone and the browser shrinks the
+   layout to fit it. */
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .camera-feed {
@@ -269,10 +356,13 @@ body,
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: max(0.75rem, env(safe-area-inset-top))
-    max(0.75rem, env(safe-area-inset-right))
-    max(0.75rem, env(safe-area-inset-bottom))
-    max(0.75rem, env(safe-area-inset-left));
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
 }
 
 .hud-top {
@@ -280,11 +370,15 @@ body,
   flex-wrap: wrap;
   gap: 0.6rem;
   align-items: flex-end;
+  min-width: 0;
+  max-width: 100%;
   pointer-events: auto;
 }
 
 .hud-note {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.55rem 0.7rem;
   border-radius: 0.65rem;
   background: rgba(255, 255, 255, 0.92);
@@ -315,10 +409,15 @@ body,
 .controls {
   pointer-events: auto;
   position: absolute;
-  top: 3.4rem;
-  left: max(0.75rem, env(safe-area-inset-left));
+  top: calc(2.65rem + max(0.75rem, env(safe-area-inset-top, 0px)));
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
   z-index: 6;
-  width: min(16rem, calc(100vw - 2rem));
+  width: min(16rem, calc(100% - 1.5rem));
+  max-height: calc(
+    100% - 2.65rem - max(0.75rem, env(safe-area-inset-top, 0px)) -
+      max(0.75rem, env(safe-area-inset-bottom, 0px))
+  );
+  overflow: auto;
   padding: 0.9rem 1rem;
   border: 1px solid rgba(26, 29, 35, 0.12);
   border-radius: 0.75rem;
@@ -373,10 +472,14 @@ body,
 @media (max-width: 640px) {
   .controls {
     top: auto;
-    bottom: 8.5rem;
+    bottom: calc(7.75rem + max(0.75rem, env(safe-area-inset-bottom, 0px)));
     left: 50%;
     transform: translateX(-50%);
-    width: min(22rem, calc(100vw - 1.5rem));
+    width: min(22rem, calc(100% - 1.5rem));
+    max-height: calc(
+      100% - 7.75rem - max(0.75rem, env(safe-area-inset-top, 0px)) -
+        max(0.75rem, env(safe-area-inset-bottom, 0px))
+    );
   }
 }
 
@@ -420,21 +523,6 @@ body,
   pointer-events: none;
 }
 
-.hud-banner {
-  position: absolute;
-  top: 42%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-  padding: 0.55rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 600;
-  pointer-events: none;
-}
-
 .hud-error {
   margin: 0.5rem 0 0;
   padding: 0.55rem 0.75rem;
@@ -443,13 +531,14 @@ body,
   color: #8a1f11;
   font-size: 0.8rem;
   pointer-events: auto;
-  max-width: 22rem;
+  max-width: min(22rem, 100%);
 }
 
 .shoot {
   pointer-events: auto;
   align-self: center;
-  width: min(12rem, 70vw);
+  width: min(12rem, 100%);
+  max-width: 100%;
   height: 4.25rem;
   margin-bottom: 2.5rem;
   border: 0;
@@ -477,9 +566,9 @@ body,
 
 .attribution {
   position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.35rem;
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
   margin: 0;
   font-size: 0.62rem;
   line-height: 1.35;

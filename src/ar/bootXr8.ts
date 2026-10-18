@@ -94,14 +94,41 @@ export function loadXr8(): Promise<XR8Api> {
   return loadPromise;
 }
 
-export async function stopXr8(): Promise<void> {
+/** True after a `run` we started, until `releaseXr8Session`. */
+let pipelineLive = false;
+
+/**
+ * Stop the camera and drop every pipeline module.
+ *
+ * `XR8.stop()` leaves modules registered. `addCameraPipelineModules` then
+ * skips a name that already exists, so the next Start AR keeps the detached
+ * `takka-r3f` closure and never mounts the animal in the new scene.
+ * Call this on stop, and again before `run`, so a session left on the
+ * landing screen still boots from an empty module list. `stop()` runs only
+ * after a session we started, so the first boot does not reset a cold engine.
+ */
+export function releaseXr8Session(): void {
   const XR8 = window.XR8;
   if (!XR8) {
+    pipelineLive = false;
     return;
   }
-  try {
-    XR8.stop();
-  } catch {
-    // already stopped
+  if (pipelineLive) {
+    try {
+      XR8.stop();
+    } catch {
+      // Already stopped, or stop ran before the camera was attached.
+    }
   }
+  try {
+    XR8.clearCameraPipelineModules?.();
+  } catch {
+    // Module list was already empty.
+  }
+  pipelineLive = false;
+}
+
+/** Call immediately before `XR8.run` so a failed start is still stopped. */
+export function markXr8SessionLive(): void {
+  pipelineLive = true;
 }

@@ -233,12 +233,6 @@ export function GameHud({
         </div>
       ) : null}
 
-      {phase === "cooldown" ? (
-        <p className="hud-banner" aria-live="polite">
-          Next animal in 2s…
-        </p>
-      ) : null}
-
       {error ? (
         <p className="hud-error" role="alert">
           {error}

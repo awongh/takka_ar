@@ -1,12 +1,14 @@
 import { useAnimations, useGLTF } from "@react-three/drei";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
-import { Box3, Vector3, type Group, type Mesh } from "three";
+import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { Box3, Vector3, type AnimationClip, type Group, type Mesh, type Object3D } from "three";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import type { AnimalId } from "../animals";
 import { animalSrc } from "../animals";
 
-type AnimalTargetProps = {
-  animal: AnimalId;
+type AnimalModelProps = {
+  scene: Object3D;
+  animations: AnimationClip[];
   /** Desired height in world units (meters with absolute AR scale). */
   height: number;
   position: [number, number, number];
@@ -14,16 +16,17 @@ type AnimalTargetProps = {
   groupRef?: RefObject<Group | null>;
 };
 
-export function AnimalTarget({
-  animal,
+/** Parsed animal. Does not call useGLTF, so it cannot suspend the AR root. */
+export function AnimalModel({
+  scene,
+  animations,
   height,
   position,
   onBounds,
   groupRef,
-}: AnimalTargetProps) {
+}: AnimalModelProps) {
   const localRef = useRef<Group>(null);
   const ref = groupRef ?? localRef;
-  const { scene, animations } = useGLTF(animalSrc(animal));
   // Object3D.clone shares the skeleton with the source, so a parent scale
   // never reached the posed mesh. SkeletonUtils rebinds bones on the copy.
   const cloned = useMemo(() => cloneSkinned(scene), [scene]);
@@ -65,7 +68,7 @@ export function AnimalTarget({
   }, [cloned]);
   const scale = height / fit.modelHeight;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const idle =
       actions.Idle ??
       (names[0] ? actions[names[0]] : undefined) ??
@@ -76,7 +79,7 @@ export function AnimalTarget({
     };
   }, [actions, names]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const center = new Vector3(
       position[0],
       position[1] + height * 0.5,
@@ -94,19 +97,60 @@ export function AnimalTarget({
   );
 }
 
-for (const id of [
-  "Alpaca",
-  "Bull",
-  "Cow",
-  "Deer",
-  "Donkey",
-  "Fox",
-  "Horse",
-  "Horse_White",
-  "Husky",
-  "ShibaInu",
-  "Stag",
-  "Wolf",
-] as const) {
-  useGLTF.preload(animalSrc(id));
+type AnimalTargetProps = {
+  animal: AnimalId;
+  /** Desired height in world units (meters with absolute AR scale). */
+  height: number;
+  position: [number, number, number];
+  onBounds: (center: Vector3, radius: number) => void;
+  groupRef?: RefObject<Group | null>;
+};
+
+/** Desktop preview loader. The preview canvas can resume useGLTF suspense. */
+export function AnimalTarget({
+  animal,
+  height,
+  position,
+  onBounds,
+  groupRef,
+}: AnimalTargetProps) {
+  const { scene, animations } = useGLTF(animalSrc(animal));
+  return (
+    <AnimalModel
+      scene={scene}
+      animations={animations}
+      height={height}
+      position={position}
+      onBounds={onBounds}
+      groupRef={groupRef}
+    />
+  );
+}
+
+type LoadedAnimalProps = {
+  gltf: GLTF;
+  height: number;
+  position: [number, number, number];
+  onBounds: (center: Vector3, radius: number) => void;
+  groupRef?: RefObject<Group | null>;
+};
+
+/** AR loader path. `gltf` is already parsed, so this render does not suspend. */
+export function LoadedAnimal({
+  gltf,
+  height,
+  position,
+  onBounds,
+  groupRef,
+}: LoadedAnimalProps) {
+  return (
+    <AnimalModel
+      scene={gltf.scene}
+      animations={gltf.animations}
+      height={height}
+      position={position}
+      onBounds={onBounds}
+      groupRef={groupRef}
+    />
+  );
 }
