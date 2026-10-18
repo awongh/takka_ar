@@ -7,7 +7,7 @@ import {
 } from "../audio";
 
 const backgroundSrc = `${import.meta.env.BASE_URL}images/background.jpg`;
-const callumSrc = `${import.meta.env.BASE_URL}images/callum.png`;
+const callumSrc = `${import.meta.env.BASE_URL}images/callum-1.png`;
 
 type LandingScreenProps = {
 	arCapable: boolean;
