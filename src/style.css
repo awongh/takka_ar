@@ -148,7 +148,7 @@ body {
   bottom: max(0px, env(safe-area-inset-bottom, 0px));
   z-index: 0;
   width: min(36vw, 19rem);
-  max-height: 60svh;
+  max-height: 30svh;
   height: auto;
   object-fit: contain;
   object-position: left bottom;
