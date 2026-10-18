@@ -25,7 +25,7 @@ export type GamePhase = "idle" | "countdown" | "live" | "cooldown";
  */
 export const DEFAULT_PROJECTILE_SIZE = 0.23;
 /** Default projectile speed in world units per second (keep slow enough to see). */
-export const DEFAULT_PROJECTILE_SPEED = 1.5;
+export const DEFAULT_PROJECTILE_SPEED = 3.5;
 /**
  * Downward acceleration as a multiple of projectile speed:
  * `ay = -gravityRatio * speed` (m/s² when speed is m/s).
@@ -65,9 +65,9 @@ export type ProjectileSettings = {
  * Animal height range in world units (meters with absolute AR scale).
  * The max is the previous fixed height, which still reads too large on device.
  */
-export const ANIMAL_HEIGHT_MIN = 0.11;
-export const ANIMAL_HEIGHT_MAX = 0.7125;
-export const DEFAULT_ANIMAL_HEIGHT = ANIMAL_HEIGHT_MAX;
+export const ANIMAL_HEIGHT_MIN = 0.51;
+export const ANIMAL_HEIGHT_MAX = 2.7125;
+export const DEFAULT_ANIMAL_HEIGHT = 0.9;
 
 export type GameHudState = {
   phase: GamePhase;

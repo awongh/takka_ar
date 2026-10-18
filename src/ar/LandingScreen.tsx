@@ -74,7 +74,7 @@ export function LandingScreen({
 			</button>
 
 			<div className="landing-panel">
-				<h1>Callum&apos;s <span className="landing-panel-title-sub">Augmented Reality</span> Chill Relaxing ASMR Fox Shooting Simulator</h1>
+				<h1>Callum&apos;s Cozy Relaxing <span className="landing-panel-title-sub">Augmented Reality</span> ASMR Fox Shooting Simulator</h1>
 				<p className="landing-description">
 					{arCapable
 						? "I'll be a dang gone monkey's uncle if I can't chill out and shoot some foxes."
