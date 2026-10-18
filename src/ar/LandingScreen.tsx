@@ -21,6 +21,7 @@ export function LandingScreen({
 	onStartDemo,
 }: LandingScreenProps) {
 	const [musicPlaying, setMusicPlaying] = useState(isBackgroundMusicPlaying);
+	const [aboutOpen, setAboutOpen] = useState(false);
 
 	useEffect(() => {
 		startBackgroundMusic();
@@ -44,6 +45,17 @@ export function LandingScreen({
 			unsubscribe();
 		};
 	}, []);
+
+	useEffect(() => {
+		if (!aboutOpen) return;
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setAboutOpen(false);
+		};
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [aboutOpen]);
 
 	return (
 		<div
@@ -99,8 +111,66 @@ export function LandingScreen({
 					>
 						Try desktop demo
 					</button>
+
+					<button
+						type="button"
+						className="button button--link"
+						aria-haspopup="dialog"
+						aria-expanded={aboutOpen}
+						onClick={() => setAboutOpen(true)}
+					>
+						About
+					</button>
 				</div>
 			</div>
+
+			{aboutOpen ? (
+				<div
+					className="landing-about"
+					role="presentation"
+					onClick={() => setAboutOpen(false)}
+				>
+					<div
+						className="landing-about-dialog"
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="landing-about-title"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<div className="landing-about-header">
+							<h2 id="landing-about-title">About</h2>
+							<button
+								type="button"
+								className="landing-about-close"
+								aria-label="Close about"
+								onClick={() => setAboutOpen(false)}
+							>
+								×
+							</button>
+						</div>
+						<p>
+							Welcome to Callum&apos;s carefully peer-reviewed institute of
+							woodland wellness, where every virtual fox is ethically sourced
+							from a server farm that practices regenerative packet composting. Inspired by a Brandenburg art walk weekend at Takka.
+						</p>
+						<p>
+							Our proprietary CalmBallistics™ engine converts muzzle velocity
+							into mindfulness credits, which you can redeem for a slightly
+							softer camera shake and the quiet satisfaction of having done
+							something outdoors without going outdoors.
+						</p>
+						<p>
+							Independent laboratory tests (conducted in a browser tab that was
+							open too long) confirm a 400% increase in cozy per capita when
+							users whisper &quot;nice shot&quot; after each hit. Side effects
+							may include mild nostalgia for Windows XP screensavers, an urge
+							to narrate your own breathing, and the unshakable belief that
+							ASMR and marksmanship were always meant to share a product page.
+							No foxes were harmed; several were politely asked to respawn.
+						</p>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }
